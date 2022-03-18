@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utc-8" />
+    <title>golang SSE demo</title>
+    <script src="//cdn.plot.ly/plotly-2.11.1.min.js"></script>
+  </head>
+  <body>
+    <h1>Simple golang SSE demo</h1>
+    <div id="myDiv"><!-- Plotly chart will be drawn inside this DIV --></div>
+    <script>
+      Plotly.newPlot("myDiv", [
+        {
+          x: [new Date()],
+          y: [Math.random()],
+          mode: "lines",
+          line: { color: "#80CAF6" },
+        },
+      ]);
+
+      // Fire up a new event source connected to the server
+      var sse = new EventSource("/api/stream");
+      sse.addEventListener("update", function (e) {
+        // Parse the JSON
+        var data = JSON.parse(e.data);
+
+        // Update the plot - we use a local time for the x-axis
+        // We also "relayOut" the old data after 1 minute
+        var time = new Date();
+
+        var update = {
+          x: [[time]],
+          y: [[data.value]],
+        };
+
+        var olderTime = time.setMinutes(time.getMinutes() - 1);
+        var futureTime = time.setMinutes(time.getMinutes() + 1);
+
+        var minuteView = {
+          xaxis: {
+            type: "date",
+            range: [olderTime, futureTime],
+          },
+        };
+
+        Plotly.relayout("myDiv", minuteView);
+        Plotly.extendTraces("myDiv", update, [0]);
+      });
+    </script>
+  </body>
+</html>
